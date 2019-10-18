@@ -1,0 +1,42 @@
+import torch
+x = 50.0
+y = 60.0
+z = 255.0
+
+# add .cuda() if need cuda acceleration
+a = torch.randn(1)
+b = torch.randn(1)
+c = torch.randn(1)
+d = torch.randn(1)
+a.requires_grad = True
+b.requires_grad = True
+c.requires_grad = True
+d.requires_grad = True
+old_lr = 0.01
+opt = torch.optim.Adam([a,b,c,d], lr=old_lr)
+mse_loss = torch.nn.MSELoss()
+l1_loss = torch.nn.L1Loss()
+dummy1 = 0.2126
+dummy2 = 0.7152
+dummy3 = 0.0722
+
+eps = 0.05
+for iter_idx in range(10000):
+    left_hand = dummy1 * x + dummy2 * y + dummy3 * z
+    right_hand = (a * x + b * y + c * z) / (d+eps)
+    # right argument is optimization target, cannot have grad
+    loss1 = (right_hand - left_hand) ** 2.0
+    container = torch.zeros(1, 4)
+    container[0, 0] = a
+    container[0, 1] = b
+    container[0, 2] = c
+    container[0, 3] = d
+    # integer constrain
+    loss2 = mse_loss(container, torch.round(torch.Tensor([[a, b, c, d]])))
+    total_loss = loss1 + loss2*0.1
+    opt.zero_grad()
+    total_loss.backward()
+    opt.step()
+    if (iter_idx%1000)==0:
+        print("current loss: ", loss1.item())
+        print("a: {}, b: {}, c: {}".format(a.item(), b.item(), c.item()))
